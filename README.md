@@ -18,9 +18,9 @@ Creating an RBAC Service Principle is needed to be able to deploy infrastructure
 ```
 
 ## Deploying Bosh on Azure
-The [Azure Quickstart templates](https://github.com/Azure/azure-quickstart-templates/tree/master) are a great starter for deploying architectures onto Azure.  The community has also put together one specifically to get a Bosh environment up and running to be able to deploy your CloudFoundry instance.
+The [Azure Quickstart templates](https://github.com/cloudfoundry-incubator/bosh-azure-cpi-release/blob/master/docs/guidance.md) are a great starter for deploying architectures onto Azure.  The community has also put together one specifically to get a Bosh environment up and running to be able to deploy your CloudFoundry instance.
 
-Goto [bosh-setup](https://github.com/Azure/azure-quickstart-templates/tree/master/bosh-setup), where you will find the ARM template, as well as the scripts and metadata used to deploy a new Bosh environment.  You can click on the "Deploy to Azure" button, or can carry out an *az* cli deployment.
+Goto [bosh-setup](https://github.com/cloudfoundry-incubator/bosh-azure-cpi-release/blob/master/docs/get-started/via-arm-templates/deploy-bosh-via-arm-templates.md), where you will find the ARM template, as well as the scripts and metadata used to deploy a new Bosh environment.  You can click on the "Deploy to Azure" button, or can carry out an *az* cli deployment.
 
 I like the CLI, so let's use that one.
 
@@ -98,79 +98,52 @@ Welcome to Ubuntu 14.04.5 LTS (GNU/Linux 4.4.0-98-generic x86_64)
 ...[snip]...
 
 justin@bosh:~$ ls
-bosh             bosh.pub  cf-cli-installer_6.23.1_x86-64.deb  deploy_cloudfoundry.sh  install.log  settings
-bosh-state.json  bosh.yml  deploy_bosh.sh                      example_manifests       run.log      utils.sh
-justin@bosh:~$
+bosh-deployment-vars.yml  connect_director_vm.sh  deploy_cloud_foundry.sh  install.log  login_bosh.sh           run.log
+cf-deployment-vars.yml    deploy_bosh.sh          example_manifests        jumpbox.key  login_cloud_foundry.sh  state.json
 ```
 
-The deployment contains two BOSH manifests that can be used to deploy a Cloud Foundry environment.  One is a CF environment on a single virtual machine, the other is a multi-vm deployment.
 
 ```
-justin@bosh:~$ ls example_manifests/
-multiple-vm-cf.yml  single-vm-cf.yml
-```
+justin@bosh:~$ ./deploy_cloud_foundry.sh
+Using environment '10.0.0.4' as client 'admin'
 
-We will deploy the multi-vm version of Cloud Foundry, which will spin up and deploy the virtual infrastructure as well as the Cloud Foundry components.
+Name      azure  
+UUID      a2343359-0ef4-471d-98ea-3056ceb951da  
+Version   264.7.0 (00000000)  
+CPI       azure_cpi  
+Features  compiled_package_cache: disabled  
+          config_server: disabled  
+          dns: disabled  
+          snapshots: disabled  
+User      admin  
 
-```
-justin@bosh:~$ ./deploy_cloudfoundry.sh example_manifests/multiple-vm-cf.yml
-Enter a password(note: password should not contain special characters: @,' and so on) to use in example_manifests/multiple-vm-cf.yml [c1oudc0w]:
-Please double check your password [c1oudc0w]. Type yes to continue:yes
-Operation: bosh upload stemcell https://bosh.io/d/stemcells/bosh-azure-hyperv-ubuntu-trusty-go_agent?v=3421.3 --sha1 e680bcfdb643d492b6bf81ec6db2d5a8512c3fe2 --skip-if-exists, Retry #0
-Acting as user 'admin' on 'bosh'
+{snip}
 
-Using remote stemcell `https://bosh.io/d/stemcells/bosh-azure-hyperv-ubuntu-trusty-go_agent?v=3421.3'
 
-Director task 1
-  Started update stemcell
-  Started update stemcell > Downloading remote stemcell
 ```
 
 It's :coffee: time again, as this process will take between 30-40 minutes.
 
-After 15-20 minutes, you can take a look at the virtual machines being deployed, specifically the tags assigned as this will show the components of the Cloud Foundry control plane that have been split into a multi-VM deployment.
-
-```
-➜  CloudFoundryOnAzure (master) ✗ az vm list -d -o json | grep job
-      "job": "etcd_z1",
-      "job": "database_z1",
-      "job": "access_z1",
-      "job": "doppler_z1",
-      "job": "bosh",
-      "job": "nats_z1",
-      "job": "cell_z1",
-      "job": "router_z1",
-      "job": "ha_proxy_z1",
-      "job": "brain_z1",
-      "job": "clock_global",
-      "job": "consul_z1",
-      "job": "uaa_z1",
-      "job": "postgres_z1",
-      "job": "route_emitter_z1",
-      "job": "loggregator_trafficcontroller_z1",
-      "job": "cc_bridge_z1",
-      "job": "api_z1",
-      "job": "api_worker_z1",
-      "job": "stats_z1",
-```
 
 Finally, you should see the deployment complete.
 
 ```
-Task 6 done
+Task 46 | 20:28:51 | Preparing deployment: Preparing deployment (00:00:04)
+Task 46 | 20:29:02 | Preparing package compilation: Finding packages to compile (00:00:00)
 
-Started         2017-11-21 16:13:09 UTC
-Finished        2017-11-21 16:49:58 UTC
-Duration        00:36:49
+Task 46 Started  Thu Feb 22 20:28:51 UTC 2018
+Task 46 Finished Thu Feb 22 20:29:02 UTC 2018
+Task 46 Duration 00:00:11
+Task 46 done
 
-Deployed `multiple-vm-azure' to `bosh'
+Succeeded
 ```
 
 ## Test the deployment
-Make sure you are logged into the BOSH vm, and install the *cf* cli
+The *cf* commnad line has already been installed in the bosh server, but you can also install it on your local machine.
 
 ```
-justin@bosh:~$ wget -O cf.deb https://s3-us-west-1.amazonaws.com/cf-cli-releases/releases/v6.23.0/cf-cli-installer_6.23.0_x86-64.deb
+juda@msft:~$ wget -O cf.deb https://s3-us-west-1.amazonaws.com/cf-cli-releases/releases/v6.23.0/cf-cli-installer_6.23.0_x86-64.deb
 --2017-11-21 21:18:20--  https://s3-us-west-1.amazonaws.com/cf-cli-releases/releases/v6.23.0/cf-cli-installer_6.23.0_x86-64.deb
 Resolving s3-us-west-1.amazonaws.com (s3-us-west-1.amazonaws.com)... 52.219.24.45
 Connecting to s3-us-west-1.amazonaws.com (s3-us-west-1.amazonaws.com)|52.219.24.45|:443... -i cf.debconnected.
@@ -182,7 +155,7 @@ Saving to: 'cf.deb'
 
 2017-11-21 21:18:23 (2.47 MB/s) - 'cf.deb' saved [5012646/5012646]
 
-justin@bosh:~$ sudo dpkg -i cf.deb
+juda@msft:~$ sudo dpkg -i cf.deb
 Selecting previously unselected package cf-cli.
 (Reading database ... 38201 files and directories currently installed.)
 Preparing to unpack cf.deb ...
@@ -190,45 +163,33 @@ Unpacking cf-cli (6.23.0) ...
 Setting up cf-cli (6.23.0) ...
 ```
 
-Get the IP address of the Cloud Foundry API endpoint
+### Login to Cloud Foundry
+
 
 ```
-justin@bosh:~$ cat ~/settings | grep cf-ip
-    "cf-ip": "51.140.108.130",
-```
-
-And login to the API server
-
-```
-justin@bosh:~$ cf login -a https://api.51.140.108.130.xip.io --skip-ssl-validation -u admin -p c1oudc0w
-te-space azure
-cf target -o "51.140.108.130.xip.io_ORGANIZATION" -s "azure"API endpoint: https://api.51.140.108.130.xip.io
+justin@bosh:~$ ./login_cloud_foundry.sh 
+API endpoint: https://api.51.140.108.130.xip.io
 Authenticating...
 OK
 
-Targeted org 51.140.108.130.xip.io_ORGANIZATION
+Targeted org system
 
 
-
-API endpoint:   https://api.51.140.108.130.xip.io (API version: 2.68.0)
+                
+API endpoint:   https://api.51.140.108.130.xip.io (API version: 2.101.0)
 User:           admin
-Org:            51.140.108.130.xip.io_ORGANIZATION
+Org:            system
 Space:          No space targeted, use 'cf target -s SPACE'
+
 justin@bosh:~$ cf create-space azure
-Creating space azure in org 51.140.108.130.xip.io_ORGANIZATION as admin...
+Creating space azure in org system as admin...
 OK
-Assigning role RoleSpaceManager to user admin in org 51.140.108.130.xip.io_ORGANIZATION / space azure as admin...
+Assigning role RoleSpaceManager to user admin in org system / space azure as admin...
 OK
-Assigning role RoleSpaceDeveloper to user admin in org 51.140.108.130.xip.io_ORGANIZATION / space azure as admin...
+Assigning role RoleSpaceDeveloper to user admin in org system / space azure as admin...
 OK
 
-TIP: Use 'cf target -o "51.140.108.130.xip.io_ORGANIZATION" -s "azure"' to target new space
-justin@bosh:~$ cf target -o "51.140.108.130.xip.io_ORGANIZATION" -s "azure"
-
-API endpoint:   https://api.51.140.108.130.xip.io (API version: 2.68.0)
-User:           admin
-Org:            51.140.108.130.xip.io_ORGANIZATION
-Space:          azure
+TIP: Use 'cf target -o "system" -s "azure"' to target new space
 ```
 
 ### Push your first app
